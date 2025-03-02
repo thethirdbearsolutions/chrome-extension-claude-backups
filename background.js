@@ -1,4 +1,4 @@
-// Set up a recurring alarm every 60 minutes
+// Set up a recurring alarm every eight hours
 chrome.runtime.onInstalled.addListener(() => {
   chrome.alarms.create('fetchConversationsAlarm', { periodInMinutes: 480 });
 });
