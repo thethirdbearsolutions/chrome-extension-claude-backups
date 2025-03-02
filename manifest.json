@@ -1,0 +1,16 @@
+{
+  "manifest_version": 3,
+  "name": "Automatically Back Up Your Claude.ai Conversations Every Hour",
+  "version": "1.0",
+  "description": "Backs up all your Claude.ai conversations to local JSON files every hour",
+  "options_page": "options.html",
+  "permissions": ["storage", "background", "alarms", "downloads", "downloads.shelf", "downloads.ui"],
+  "host_permissions": ["https://claude.ai/*"],
+  "action": {
+    "default_title": "Backup Claude Conversations"
+  },
+  "background": {
+    "service_worker": "background.js",
+    "type": "module"
+  }
+}

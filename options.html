@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Claude Backup Settings</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        margin: 20px;
+        line-height: 1.5;
+      }
+      h1 {
+        color: #4a4a4a;
+      }
+      form {
+        max-width: 500px;
+      }
+      label {
+        display: block;
+        margin-bottom: 5px;
+        font-weight: bold;
+      }
+      input[type="text"] {
+        width: 100%;
+        padding: 8px;
+        margin-bottom: 15px;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+      }
+      button {
+        background-color: #4e5de8;
+        color: white;
+        padding: 10px 15px;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+      }
+      button:hover {
+        background-color: #3f4bd1;
+      }
+      .status {
+        margin-top: 15px;
+        padding: 10px;
+        border-radius: 4px;
+      }
+      .success {
+        background-color: #d4edda;
+        color: #155724;
+      }
+    </style>
+    <script src="options.js"></script>
+  </head>
+  <body>
+    <h1>Claude.ai Conversation Backup Settings</h1>
+    <p>Configure where your Claude.ai conversations will be saved.</p>
+    
+    <form id="settingsForm">
+      <label for="downloadDir">Download Directory:</label>
+      <input 
+        type="text" 
+        id="downloadDir" 
+        placeholder="claude-conversations" 
+        required 
+      />
+      <p><em>Note: This directory will be created within your Chrome downloads folder.</em></p>
+      
+      <button type="submit">Save Settings</button>
+    </form>
+    
+    <div id="status" class="status" style="display: none;"></div>
+    
+    <div style="margin-top: 30px;">
+      <button id="backupNow">Backup Conversations Now</button>
+    </div>
+  </body>
+</html>
