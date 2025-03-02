@@ -26,9 +26,9 @@ See our blog post for more details, background, and motivation: https://thirdbea
 
 ## Explore Your Backups:
 
-** All conversations are saved as JSON files in your specified download directory
-** Each file is named based on the conversation title and its UUID
-** An index file with metadata is also created for easy reference
+* All conversations are saved as JSON files in your specified download directory
+* Each file is named based on the conversation title and its UUID
+* An index file with metadata is also created for easy reference
 
 # Key Features
 
