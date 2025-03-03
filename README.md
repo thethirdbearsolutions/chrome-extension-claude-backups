@@ -1,6 +1,6 @@
 # Automatically back up your Claude conversations
 
-See our blog post for more details, background, and motivation: https://thirdbear.substack.com/
+See our blog post for more details, background, and motivation: https://thirdbear.substack.com/p/backing-up-your-claude-conversations
 
 # How to Use This Extension
 
