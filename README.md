@@ -6,7 +6,7 @@ See our blog post for more details, background, and motivation: https://thirdbea
 
 ## Install the Extension:
 
-1. Clone this repo
+1. Clone this repo, or [download and unpack the zip archive](https://github.com/thethirdbearsolutions/chrome-extension-claude-backups/archive/refs/heads/main.zip)
 2. In Chrome, go to chrome://extensions/
 3. Enable "Developer mode" (top right)
 4. Click "Load unpacked" and select your extension directory
@@ -21,7 +21,7 @@ See our blog post for more details, background, and motivation: https://thirdbea
 
 ## Automatic Backups:
 
-* The extension will automatically back up your conversations every day
+* The extension will automatically back up your conversations every eight hours
 * You can also trigger an immediate backup by clicking the extension icon or the "Backup Conversations Now" button in options
 
 ## Explore Your Backups:
@@ -32,7 +32,7 @@ See our blog post for more details, background, and motivation: https://thirdbea
 
 # Key Features
 
-* Automatic daily backups
+* Automatic backups 3x daily
 * Complete conversation history - includes all messages in each conversation
 * Conversation metadata - preserves names, dates, and organization info
 * Handles pagination - will fetch all conversations, even if you have
