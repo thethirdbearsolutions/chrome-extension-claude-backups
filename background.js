@@ -3,6 +3,14 @@ chrome.runtime.onInstalled.addListener(() => {
   chrome.alarms.create('fetchConversationsAlarm', { periodInMinutes: 480 });
 });
 
+const backupResults = {
+  inProgress: false,
+  lastResult: null,
+  lastTime: null,
+  itemCount: 0,
+  duration: 0
+};
+
 // Listen for the alarm and fetch conversations
 chrome.alarms.onAlarm.addListener((alarm) => {
   if (alarm.name === 'fetchConversationsAlarm') {
@@ -18,11 +26,25 @@ chrome.action.onClicked.addListener(() => {
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message.action === 'backupNow') {
     fetchAndSaveConversations();
+    sendResponse({ success: true });    
+  } else if (message.action === 'forceFullBackup') {
+    fetchAndSaveConversations(true);
+    sendResponse({ success: true });
+  } else if (message.action === 'getBackupStatus') {
+    sendResponse({ inProgress: backupResults.inProgress });
+  } else if (message.action === 'getBackupResults') {
+    sendResponse({ results: backupResults });
   }
   return true;
 });
 
-async function fetchAndSaveConversations() {
+async function fetchAndSaveConversations(forceFullBackup = false) {
+
+  backupResults.inProgress = true;
+  backupResults.lastResult = null;
+
+  updateBadge();
+  
   chrome.storage.local.get(['downloadDir', 'lastBackupState'], async (settings) => {
     const downloadDir = settings.downloadDir || 'claude-conversations';
     const lastBackupState = settings.lastBackupState || {}; // UUID -> timestamp mapping
@@ -52,6 +74,7 @@ async function fetchAndSaveConversations() {
       let allConversations = [];
       let offset = 0;
       const limit = 50;
+      let fetchStartTime = Date.now();
       
       while (true) {
         const conversationsUrl = `https://claude.ai/api/organizations/${chatOrg.uuid}/chat_conversations?limit=${limit}&offset=${offset}`;
@@ -86,9 +109,11 @@ async function fetchAndSaveConversations() {
         
         // Skip if we've downloaded this conversation before and it hasn't changed
         if (lastDownloaded && new Date(lastDownloaded) >= updatedAt) {
-          console.log(`Skipping unchanged conversation: ${conversation.name}`);
-          newBackupState[conversation.uuid] = lastDownloaded;
-          continue;
+          if (!forceFullBackup) {
+            console.log(`Skipping unchanged conversation: ${conversation.name}`);
+            newBackupState[conversation.uuid] = lastDownloaded;
+            continue;
+          }
         }
         
         // This conversation needs updating
@@ -136,13 +161,62 @@ async function fetchAndSaveConversations() {
       
       // Update our backup state in chrome storage
       chrome.storage.local.set({ lastBackupState: newBackupState });
-      
-      console.log(`Backup complete. Updated ${updatedCount} of ${allConversations.length} conversations.`);
+
+      const message = `Backup complete. Updated ${updatedCount} of ${allConversations.length} conversations.`;
+      console.log(message);
+      backupResults.inProgress = false;
+      backupResults.lastResult = 'success';
+      backupResults.lastTime = new Date();
+      backupResults.itemCount = updatedCount;
+      backupResults.duration = Math.round((Date.now() - fetchStartTime) / 1000);
+      backupResults.error = '';
+      backupResults.message = message;
+      updateBadge();
       
     } catch (error) {
+      backupResults.inProgress = false;
+      backupResults.lastResult = 'success';
+      backupResults.lastTime = new Date();
+      backupResults.itemCount = 0;
+      backupResults.duration = 0;
+      backupResults.error = error;
+      backupResults.message = '';
+      updateBadge();
       console.error('Error fetching Claude.ai conversations', error);
     }
   });
+}
+
+function updateBadge() {
+  // Check if any backups are in progress
+  const anyInProgress = backupResults.inProgress;
+  
+  if (anyInProgress) {
+    // Show a badge indicating backup in progress
+    chrome.action.setBadgeText({ text: "⏳" });
+    chrome.action.setBadgeBackgroundColor({ color: "#0366d6" });
+  } else {
+    const success = backupResults.lastResult === 'success';
+    const error = backupResults.lastResult === 'error';
+    
+    if (success) {
+      // Show success badge
+      chrome.action.setBadgeText({ text: "✓" });
+      chrome.action.setBadgeBackgroundColor({ color: "#28a745" });
+      
+      // Clear badge after 30 seconds
+      setTimeout(() => {
+        chrome.action.setBadgeText({ text: "" });
+      }, 30000);
+    } else if (error) {
+      // Show error badge
+      chrome.action.setBadgeText({ text: "!" });
+      chrome.action.setBadgeBackgroundColor({ color: "#dc3545" });
+    } else {
+      // Clear badge
+      chrome.action.setBadgeText({ text: "" });
+    }
+  }
 }
 
 async function saveConversationToFile(conversationData, downloadDir, fileName) {
