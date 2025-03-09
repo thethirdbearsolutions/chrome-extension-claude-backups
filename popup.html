@@ -2,6 +2,7 @@
 <html>
 <head>
   <title>Claude Backup</title>
+  <meta charset="utf-8">
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -62,6 +63,10 @@
     }
     button.primary:hover {
       background-color: #0255ba;
+    }
+    .browse-button-container {
+        text-align: right;
+        margin-top: 15px;
     }
     .status {
       margin-top: 12px;
@@ -163,6 +168,10 @@
       <div class="result-item">
         <span class="result-details">No recent backups</span>
       </div>
+    </div>
+
+    <div class="browse-button-container">
+      <button id="openBrowserButton">Browse Conversations →</button>
     </div>
   </div>
   

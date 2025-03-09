@@ -1,0 +1,532 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Claude Conversations Browser</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    :root {
+      --primary-color: #4e5de8;
+      --primary-hover: #3f4bd1;
+      --bg-color: #f9f9f9;
+      --card-bg: #ffffff;
+      --text-color: #333;
+      --text-secondary: #666;
+      --border-color: #eaeaea;
+      --hover-bg: #f5f7ff;
+      --highlight-color: #e6e9ff;
+      --star-color: gold;
+    }
+    
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+      background-color: var(--bg-color);
+      color: var(--text-color);
+      line-height: 1.6;
+      padding: 0;
+      margin: 0;
+    }
+    
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+    
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 15px 20px;
+      background-color: var(--card-bg);
+      border-bottom: 1px solid var(--border-color);
+      box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+    
+    h1 {
+      font-size: 24px;
+      font-weight: 600;
+      color: var(--text-color);
+    }
+    
+    .search-container {
+      display: flex;
+      gap: 10px;
+      width: 50%;
+    }
+    
+    .search-input {
+      position: relative;
+      flex-grow: 1;
+    }
+    
+    .search-input input {
+      width: 100%;
+      padding: 10px 15px;
+      border: 1px solid var(--border-color);
+      border-radius: 4px;
+      font-size: 14px;
+      transition: border-color 0.2s;
+    }
+    
+    .search-input input:focus {
+      outline: none;
+      border-color: var(--primary-color);
+      box-shadow: 0 0 0 2px rgba(78, 93, 232, 0.1);
+    }
+    
+    .search-input .search-icon {
+      position: absolute;
+      right: 12px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--text-secondary);
+    }
+    
+    button {
+      padding: 10px 15px;
+      background-color: var(--primary-color);
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 500;
+      transition: background-color 0.2s;
+    }
+    
+    button:hover {
+      background-color: var(--primary-hover);
+    }
+    
+    button.secondary {
+      background-color: white;
+      color: var(--primary-color);
+      border: 1px solid var(--primary-color);
+    }
+    
+    button.secondary:hover {
+      background-color: var(--highlight-color);
+    }
+    
+    .stats-bar {
+      background-color: var(--card-bg);
+      border-radius: 4px;
+      padding: 15px 20px;
+      margin: 20px 0;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 14px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    }
+    
+    .stats-item {
+      display: flex;
+      align-items: center;
+      color: var(--text-secondary);
+    }
+    
+    .stats-item strong {
+      color: var(--text-color);
+      margin-left: 5px;
+    }
+    
+    .search-controls {
+      background-color: var(--card-bg);
+      border-radius: 4px;
+      padding: 15px 20px;
+      margin: 20px 0;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    }
+    
+    .filter-options {
+      display: flex;
+      gap: 20px;
+      margin-top: 15px;
+    }
+    
+    .filter-group {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    
+    .filter-label {
+      font-weight: 500;
+      font-size: 14px;
+    }
+    
+    .checkbox-group {
+      display: flex;
+      gap: 15px;
+    }
+    
+    .checkbox-item {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 14px;
+    }
+    
+    .conversations-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      gap: 20px;
+      margin-top: 20px;
+    }
+    
+    .conversation-card {
+      background-color: var(--card-bg);
+      border-radius: 8px;
+      padding: 20px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+      transition: transform 0.2s, box-shadow 0.2s;
+      cursor: pointer;
+      position: relative;
+      border: 1px solid var(--border-color);
+    }
+    
+    .conversation-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+      border-color: var(--primary-color);
+    }
+    
+    .conversation-card h2 {
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--text-color);
+      margin-bottom: 12px;
+      line-height: 1.4;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+      height: 44px;
+    }
+    
+    .conversation-meta {
+      font-size: 13px;
+      color: var(--text-secondary);
+      margin-bottom: 15px;
+    }
+    
+    .message-count {
+      display: inline-flex;
+      align-items: center;
+      background-color: var(--highlight-color);
+      padding: 3px 8px;
+      border-radius: 12px;
+      font-size: 12px;
+      color: var(--primary-color);
+      margin-top: 5px;
+    }
+    
+    .message-count svg {
+      margin-right: 5px;
+    }
+    
+    .star-icon {
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      color: var(--star-color);
+      font-size: 18px;
+    }
+    
+    .empty-state {
+      text-align: center;
+      padding: 40px 20px;
+      color: var(--text-secondary);
+    }
+    
+    .empty-state h2 {
+      font-size: 18px;
+      margin-bottom: 10px;
+      color: var(--text-color);
+    }
+    
+    .empty-state p {
+      margin-bottom: 20px;
+    }
+    
+    .loading {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 40px;
+      font-size: 14px;
+      color: var(--text-secondary);
+    }
+    
+    .spinner {
+      border: 3px solid rgba(0, 0, 0, 0.1);
+      border-radius: 50%;
+      border-top: 3px solid var(--primary-color);
+      width: 20px;
+      height: 20px;
+      animation: spin 1s linear infinite;
+      margin-right: 10px;
+    }
+    
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    
+    .search-result-count {
+      margin: 20px 0;
+      font-size: 14px;
+      color: var(--text-secondary);
+    }
+    
+    .search-snippets {
+      background-color: var(--card-bg);
+      border-radius: 4px;
+      padding: 15px 20px;
+      margin: 20px 0;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    }
+    
+    .search-snippets h3 {
+      font-size: 16px;
+      font-weight: 600;
+      margin-bottom: 10px;
+    }
+    
+    .search-snippet {
+      padding: 10px;
+      border-bottom: 1px solid var(--border-color);
+      font-size: 14px;
+    }
+    
+    .search-snippet:last-child {
+      border-bottom: none;
+    }
+    
+    .snippet-sender {
+      color: var(--primary-color);
+      font-weight: 500;
+      margin-right: 5px;
+    }
+    
+    .more-snippets {
+      font-size: 13px;
+      color: var(--text-secondary);
+      text-align: center;
+      padding: 10px;
+    }
+    
+    .actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+      margin-top: 20px;
+    }
+    
+    .modal-backdrop {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-color: rgba(0, 0, 0, 0.5);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 1000;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.2s;
+    }
+    
+    .modal-backdrop.active {
+      opacity: 1;
+      pointer-events: all;
+    }
+    
+    .modal {
+      background-color: white;
+      border-radius: 8px;
+      width: 90%;
+      max-width: 500px;
+      padding: 20px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+      transform: translateY(-20px);
+      transition: transform 0.2s;
+    }
+    
+    .modal-backdrop.active .modal {
+      transform: translateY(0);
+    }
+    
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 15px;
+    }
+    
+    .modal-title {
+      font-size: 18px;
+      font-weight: 600;
+    }
+    
+    .modal-close {
+      background: transparent;
+      border: none;
+      color: var(--text-secondary);
+      font-size: 20px;
+      cursor: pointer;
+      padding: 5px;
+    }
+    
+    .modal-body {
+      margin-bottom: 20px;
+    }
+    
+    .modal-footer {
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+    }
+    
+    .hidden {
+      display: none !important;
+    }
+    
+    @media (max-width: 768px) {
+      .header {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 15px;
+      }
+      
+      .search-container {
+        width: 100%;
+      }
+      
+      .stats-bar {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 10px;
+      }
+      
+      .filter-options {
+        flex-direction: column;
+      }
+      
+      .conversations-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>Claude Conversations</h1>
+    <div class="search-container">
+      <div class="search-input">
+        <input type="text" id="searchInput" placeholder="Search conversations...">
+        <span class="search-icon">🔍</span>
+      </div>
+      <button id="refreshButton">Refresh</button>
+    </div>
+  </div>
+  
+  <div class="container">
+    <div class="stats-bar">
+      <div class="stats-item">
+        <span>Conversations:</span>
+        <strong id="conversationCount">0</strong>
+      </div>
+      <div class="stats-item">
+        <span>Messages:</span>
+        <strong id="messageCount">0</strong>
+      </div>
+      <div class="stats-item">
+        <span>Last Backup:</span>
+        <strong id="lastBackupTime">Never</strong>
+      </div>
+    </div>
+    
+    <div id="searchControls" class="search-controls hidden">
+      <div class="filter-options">
+        <div class="filter-group">
+          <div class="filter-label">Search in:</div>
+          <div class="checkbox-group">
+            <label class="checkbox-item">
+              <input type="checkbox" name="contentType" value="text" checked> Regular Text
+            </label>
+            <label class="checkbox-item">
+              <input type="checkbox" name="contentType" value="thinking" checked> Thinking Blocks
+            </label>
+            <label class="checkbox-item">
+              <input type="checkbox" name="contentType" value="attachment"> Attachments
+            </label>
+          </div>
+        </div>
+        
+        <div class="filter-group">
+          <div class="filter-label">Messages from:</div>
+          <div class="checkbox-group">
+            <label class="checkbox-item">
+              <input type="checkbox" name="sender" value="human" checked> You
+            </label>
+            <label class="checkbox-item">
+              <input type="checkbox" name="sender" value="assistant" checked> Claude
+            </label>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <div id="searchResultCount" class="search-result-count hidden"></div>
+    
+    <div id="loading" class="loading">
+      <div class="spinner"></div>
+      <span>Loading conversations...</span>
+    </div>
+    
+    <div id="emptyState" class="empty-state hidden">
+      <h2>No conversations found</h2>
+      <p>You don't have any backed up conversations yet, or none match your search.</p>
+      <button id="emptyStateBackupButton" class="secondary">Run Backup Now</button>
+    </div>
+    
+    <div id="conversationsGrid" class="conversations-grid hidden"></div>
+    
+    <div class="actions">
+      <button id="backupNowButton" class="secondary">Run Backup Now</button>
+    </div>
+  </div>
+  
+  <div id="confirmModal" class="modal-backdrop">
+    <div class="modal">
+      <div class="modal-header">
+        <div class="modal-title">Confirm Action</div>
+        <button class="modal-close" id="closeModalButton">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p id="modalMessage"></p>
+      </div>
+      <div class="modal-footer">
+        <button id="cancelModalButton" class="secondary">Cancel</button>
+        <button id="confirmModalButton">Confirm</button>
+      </div>
+    </div>
+  </div>
+  
+  <script src="browser.js"></script>
+</body>
+</html>

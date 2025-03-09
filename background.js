@@ -1,3 +1,5 @@
+import { ClaudeDB } from './db.js';
+
 // Set up a recurring alarm every eight hours
 chrome.runtime.onInstalled.addListener(() => {
   chrome.alarms.create('fetchConversationsAlarm', { periodInMinutes: 480 });
@@ -34,6 +36,47 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     sendResponse({ inProgress: backupResults.inProgress });
   } else if (message.action === 'getBackupResults') {
     sendResponse({ results: backupResults });
+  } else if (message.action === 'getAllConversations') {
+    ClaudeDB.getAllConversations()
+            .then(conversations => {
+              sendResponse({ success: true, conversations });
+            })
+            .catch(error => {
+              console.error('Error getting conversations:', error);
+              sendResponse({ success: false, error: error.toString() });
+            });
+    return true; // Keep the message channel open for the async response
+  } else if (message.action === 'searchConversations') {
+    ClaudeDB.searchConversations(message.query, message.options)
+            .then(conversations => {
+              sendResponse({ success: true, conversations });
+            })
+            .catch(error => {
+              console.error('Error searching conversations:', error);
+              sendResponse({ success: false, error: error.toString() });
+            });
+    return true; // Keep the message channel open for the async response
+  } else if (message.action === 'getDBStats') {
+    ClaudeDB.getDBStats()
+            .then(stats => {
+              sendResponse({ success: true, stats });
+            })
+            .catch(error => {
+              console.error('Error getting DB stats:', error);
+              sendResponse({ success: false, error: error.toString() });
+            });
+    return true; // Keep the message channel open for the async response
+  } else if (message.action === 'getSearchSnippets') {
+    console.log('options', message.options);
+    ClaudeDB.getSearchSnippets(message.conversationUuid, message.query, message.options)
+            .then(snippets => {
+              sendResponse({ success: true, snippets });
+            })
+            .catch(error => {
+              console.error('Error getting search snippets:', error);
+              sendResponse({ success: false, error: error.toString() });
+            });
+    return true; // Keep the message channel open for the async response
   }
   return true;
 });
@@ -137,6 +180,15 @@ async function fetchAndSaveConversations(forceFullBackup = false) {
           downloadDir, 
           `${(conversation.name || 'Untitled Conversation').replace(/[^a-z0-9]/gi, '_').toLowerCase()}_${conversation.uuid}`
         );
+
+        try {
+          // Also store in IndexedDB for search and browsing
+          await ClaudeDB.storeConversation(conversationDetail);
+          console.log(`Stored conversation ${conversation.uuid} in IndexedDB`);
+        } catch (dbError) {
+          console.error(`Failed to store conversation ${conversation.uuid} in IndexedDB:`, dbError);
+          // Continue with backup even if IndexedDB storage fails
+        }
         
         // Update our backup state with current timestamp
         newBackupState[conversation.uuid] = new Date().toISOString();

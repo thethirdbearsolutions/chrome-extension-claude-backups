@@ -1,10 +1,10 @@
 {
   "manifest_version": 3,
   "name": "Automatically Back Up Your Claude.ai Conversations Every Eight Hours",
-  "version": "0.2",
+  "version": "0.4",
   "description": "Backs up all your Claude.ai conversations to local JSON files every eight hours",
   "options_page": "options.html",
-  "permissions": ["storage", "background", "alarms", "downloads", "downloads.shelf", "downloads.ui"],
+  "permissions": ["storage", "background", "alarms", "downloads", "downloads.shelf", "downloads.ui", "tabs"],
   "host_permissions": ["https://claude.ai/*"],
   "action": {
     "default_popup": "popup.html",
@@ -25,5 +25,9 @@
   "background": {
     "service_worker": "background.js",
     "type": "module"
-  }
+  },
+  "web_accessible_resources": [{
+    "resources": ["browser.html", "db.js"],
+    "matches": ["<all_urls>"]
+  }]
 }

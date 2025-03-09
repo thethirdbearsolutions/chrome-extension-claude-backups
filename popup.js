@@ -33,6 +33,13 @@ document.addEventListener('DOMContentLoaded', () => {
   forceBackupButton.addEventListener('click', () => {
     startBackup(true);
   });
+
+  const openBrowserButton = document.getElementById('openBrowserButton');
+  if (openBrowserButton) {
+    openBrowserButton.addEventListener('click', () => {
+      chrome.tabs.create({ url: chrome.runtime.getURL('browser.html') });
+    });
+  }
   
   // Function to start backup and show status
   function startBackup(forceFullBackup) {
