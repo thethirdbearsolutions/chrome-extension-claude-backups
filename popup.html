@@ -140,6 +140,24 @@
       background-color: #d9edf7;
       color: #31708f;
     }
+    /* Quick search styles */
+    .quick-search {
+      display: flex;
+      gap: 8px;
+      margin-top: 15px;
+      margin-bottom: 8px;
+    }
+    .quick-search input {
+      flex-grow: 1;
+      padding: 8px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      font-size: 13px;
+    }
+    .quick-search button {
+      padding: 8px 12px;
+      white-space: nowrap;
+    }
   </style>
   <script src="popup.js"></script>
 </head>
@@ -171,6 +189,11 @@
     </div>
 
     <div class="browse-button-container">
+      <!-- Quick search field -->
+      <div class="quick-search">
+        <input type="text" id="quickSearchInput" placeholder="Quick search...">
+        <button id="quickSearchButton">Go</button>
+      </div>
       <button id="openBrowserButton">Browse Conversations →</button>
     </div>
   </div>

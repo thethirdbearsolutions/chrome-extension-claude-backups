@@ -6,6 +6,12 @@ document.addEventListener('DOMContentLoaded', () => {
   const configStatus = document.getElementById('configStatus');
   const backupOptions = document.getElementById('backupOptions');
   const resultsContainer = document.getElementById('resultsContainer');
+  const quickSearchInput = document.getElementById('quickSearchInput');
+  const quickSearchButton = document.getElementById('quickSearchButton');
+
+  if (quickSearchInput) {
+    quickSearchInput.focus();
+  }
   
   // Load settings and update UI
   checkConfiguration();
@@ -39,6 +45,34 @@ document.addEventListener('DOMContentLoaded', () => {
     openBrowserButton.addEventListener('click', () => {
       chrome.tabs.create({ url: chrome.runtime.getURL('browser.html') });
     });
+  }
+  
+  // Quick search functionality
+  if (quickSearchInput && quickSearchButton) {
+    // Handle Enter key in search input
+    quickSearchInput.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') {
+        performQuickSearch();
+      }
+    });
+    
+    // Handle search button click
+    quickSearchButton.addEventListener('click', () => {
+      performQuickSearch();
+    });
+  }
+  
+  // Function to perform quick search
+  function performQuickSearch() {
+    const searchTerm = quickSearchInput.value.trim();
+    if (searchTerm) {
+      // Open browser.html with search query parameter
+      const searchUrl = `browser.html?search=${encodeURIComponent(searchTerm)}`;
+      chrome.tabs.create({ url: chrome.runtime.getURL(searchUrl) });
+    } else {
+      // If empty search, just open the browser without search params
+      chrome.tabs.create({ url: chrome.runtime.getURL('browser.html') });
+    }
   }
   
   // Function to start backup and show status

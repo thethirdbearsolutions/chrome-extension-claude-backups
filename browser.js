@@ -32,6 +32,19 @@ document.addEventListener('DOMContentLoaded', () => {
   // Initialize
   init();
   
+  // Check for search parameter in URL
+  function checkForSearchParam() {
+    const urlParams = new URLSearchParams(window.location.search);
+    const searchParam = urlParams.get('search');
+    
+    if (searchParam) {
+      searchInput.value = searchParam;
+      currentSearchTerm = searchParam;
+      searchControls.classList.remove('hidden');
+      performSearch();
+    }
+  }
+  
   // Event listeners
   searchInput.addEventListener('input', debounce(() => {
     currentSearchTerm = searchInput.value.trim();
@@ -72,6 +85,7 @@ document.addEventListener('DOMContentLoaded', () => {
   async function init() {
     showLoading();
     await loadData();
+    checkForSearchParam(); // Check for search parameter after loading data
     hideLoading();
   }
   
@@ -202,24 +216,171 @@ document.addEventListener('DOMContentLoaded', () => {
       } else {
         renderConversations(results);
 
-        // Get snippets for the first few results to show context
-        if (query && results.length > 0) {
-          const snippetsResponse = await sendMessage({
-            action: 'getSearchSnippets',
-            conversationUuid: results[0].uuid,
-            query: query,
-            options: options,
-          });
-          
-          if (snippetsResponse && snippetsResponse.success && snippetsResponse.snippets && snippetsResponse.snippets.length > 0) {
-            // Display snippets if we have them
-            showSearchSnippets(snippetsResponse.snippets, results[0].name);
+        // Get snippets for ALL matching conversations (limited to first 5 conversations)
+        if (query) {
+          // Create or reuse snippets container
+          let snippetsContainer = document.getElementById('searchSnippets');
+          if (!snippetsContainer) {
+            snippetsContainer = document.createElement('div');
+            snippetsContainer.id = 'searchSnippets';
+            snippetsContainer.className = 'search-snippets';
+            
+            // Add custom styles for scrollable content
+            const snippetsStyle = document.createElement('style');
+            snippetsStyle.textContent = `
+              .search-snippets {
+                max-height: 300px;
+                overflow-y: auto;
+                border: 1px solid var(--border-color);
+                margin-bottom: 20px;
+              }
+              .conversation-snippets {
+                margin-bottom: 15px;
+                border-bottom: 1px solid var(--border-color);
+                padding-bottom: 10px;
+              }
+              .conversation-snippets:last-child {
+                border-bottom: none;
+                margin-bottom: 0;
+              }
+              .conversation-snippets h3 {
+                font-size: 14px;
+                font-weight: 600;
+                margin-bottom: 8px;
+                color: var(--primary-color);
+              }
+            `;
+            document.head.appendChild(snippetsStyle);
+            
+            // Insert after search result count
+            searchResultCount.parentNode.insertBefore(snippetsContainer, searchResultCount.nextSibling);
           } else {
-            // Remove any search snippets if none found
-            const snippetsContainer = document.getElementById('searchSnippets');
-            if (snippetsContainer) {
-              snippetsContainer.remove();
+            snippetsContainer.innerHTML = '';
+          }
+          
+          // Add header for snippets section
+          const header = document.createElement('h3');
+          header.textContent = 'Matching Content';
+          header.style.padding = '10px';
+          header.style.borderBottom = '1px solid var(--border-color)';
+          header.style.margin = '0';
+          snippetsContainer.appendChild(header);
+          
+          const conversationsToFetch = results;
+          
+          // Create a container for all snippets content that will be scrollable
+          const snippetsContent = document.createElement('div');
+          snippetsContent.className = 'snippets-content';
+          snippetsContent.style.padding = '10px';
+          snippetsContainer.appendChild(snippetsContent);
+          
+          // Fetch snippets for each conversation
+          for (const conversation of conversationsToFetch) {
+            const snippetsResponse = await sendMessage({
+              action: 'getSearchSnippets',
+              conversationUuid: conversation.uuid,
+              query: query,
+              options: options,
+            });
+            
+            if (snippetsResponse && snippetsResponse.success && 
+                snippetsResponse.snippets && snippetsResponse.snippets.length > 0) {
+              // Create a section for this conversation's snippets
+              const conversationSnippets = document.createElement('div');
+              conversationSnippets.className = 'conversation-snippets';
+              
+              // Add conversation title
+              const titleSection = document.createElement('div');
+              titleSection.style.display = 'flex';
+              titleSection.style.justifyContent = 'space-between';
+              titleSection.style.alignItems = 'flex-start';
+              titleSection.style.marginBottom = '8px';
+
+              // Create clickable title that links to Claude.ai
+              const conversationTitle = document.createElement('h3');
+              conversationTitle.style.margin = '0';
+              const titleLink = document.createElement('a');
+              titleLink.href = `https://claude.ai/chat/${conversation.uuid}`;
+              titleLink.textContent = conversation.name || 'Untitled Conversation';
+              titleLink.style.textDecoration = 'none';
+              titleLink.style.color = 'var(--primary-color)';
+              titleLink.target = '_blank'; // Open in new tab
+              titleLink.addEventListener('mouseover', () => {
+                titleLink.style.textDecoration = 'underline';
+              });
+              titleLink.addEventListener('mouseout', () => {
+                titleLink.style.textDecoration = 'none';
+              });
+              conversationTitle.appendChild(titleLink);
+
+              // Add metadata section
+              const metaInfo = document.createElement('div');
+              metaInfo.style.fontSize = '12px';
+              metaInfo.style.color = 'var(--text-secondary)';
+              metaInfo.style.textAlign = 'right';
+              metaInfo.style.marginLeft = '10px';
+              metaInfo.style.flexShrink = '0';
+
+              // Format dates using message timestamps instead of conversation timestamps
+              const firstMessageDate = conversation.first_message_at ? new Date(conversation.first_message_at) : new Date(conversation.created_at);
+              const lastMessageDate = conversation.last_message_at ? new Date(conversation.last_message_at) : new Date(conversation.updated_at);
+
+              metaInfo.innerHTML = `
+  Started ${formatDate(firstMessageDate)}; 
+  last activity ${formatDate(lastMessageDate)}
+              `;
+
+              titleSection.appendChild(conversationTitle);
+              titleSection.appendChild(metaInfo);
+              conversationSnippets.appendChild(titleSection);
+              
+              // Add snippets (limit to 3 per conversation)
+              const snippets = snippetsResponse.snippets.slice(0, 3);
+              snippets.forEach(snippet => {
+                const snippetDiv = createSnippetElement(snippet);
+                conversationSnippets.appendChild(snippetDiv);
+              });
+              
+              // Add "more matches" text if applicable
+              if (snippetsResponse.snippets.length > 3) {
+                const more = document.createElement('div');
+                more.className = 'more-snippets';
+                more.textContent = `...and ${snippetsResponse.snippets.length - 3} more matches in this conversation`;
+                more.style.fontSize = '12px';
+                more.style.color = 'var(--text-secondary)';
+                more.style.textAlign = 'right';
+                more.style.fontStyle = 'italic';
+                more.style.marginTop = '5px';
+                conversationSnippets.appendChild(more);
+              }
+              
+              snippetsContent.appendChild(conversationSnippets);
             }
+          }
+          
+          // If we have more conversations than we showed snippets for
+          if (results.length > conversationsToFetch.length) {
+            const moreConversations = document.createElement('div');
+            moreConversations.className = 'more-conversations';
+            moreConversations.textContent = `...and ${results.length - conversationsToFetch.length} more conversations with matches`;
+            moreConversations.style.fontSize = '12px';
+            moreConversations.style.color = 'var(--text-secondary)';
+            moreConversations.style.textAlign = 'center';
+            moreConversations.style.padding = '10px';
+            moreConversations.style.fontStyle = 'italic';
+            snippetsContent.appendChild(moreConversations);
+          }
+          
+          // If no snippets were found in any conversation
+          if (snippetsContent.children.length === 0) {
+            const noSnippets = document.createElement('div');
+            noSnippets.className = 'no-snippets';
+            noSnippets.textContent = 'No specific content matches found';
+            noSnippets.style.padding = '10px';
+            noSnippets.style.fontStyle = 'italic';
+            noSnippets.style.color = 'var(--text-secondary)';
+            noSnippets.style.textAlign = 'center';
+            snippetsContent.appendChild(noSnippets);
           }
         }
         
@@ -239,64 +400,57 @@ document.addEventListener('DOMContentLoaded', () => {
     hideLoading();
   }
   
-  // Function to display search snippets
-  function showSearchSnippets(snippets, conversationName) {
-    // Create or get snippets container
-    let snippetsContainer = document.getElementById('searchSnippets');
-    if (!snippetsContainer) {
-      snippetsContainer = document.createElement('div');
-      snippetsContainer.id = 'searchSnippets';
-      snippetsContainer.className = 'search-snippets';
-      // Insert after search result count
-      searchResultCount.parentNode.insertBefore(snippetsContainer, searchResultCount.nextSibling);
-    } else {
-      snippetsContainer.innerHTML = '';
+  function createSnippetElement(snippet) {
+    const snippetDiv = document.createElement('div');
+    snippetDiv.className = 'search-snippet';
+    
+    // Create header section for sender and timestamp
+    const headerDiv = document.createElement('div');
+    
+    const senderSpan = document.createElement('span');
+    senderSpan.className = 'snippet-sender';
+    senderSpan.textContent = snippet.sender === 'human' ? 'You: ' : 'Claude: ';
+    
+    const contentTypeIndicator = document.createElement('small');
+    contentTypeIndicator.style.color = 'var(--text-secondary)';
+    contentTypeIndicator.style.marginLeft = '5px';
+    
+    if (snippet.content_type === 'thinking') {
+      contentTypeIndicator.textContent = '[thinking]';
+    } else if (snippet.content_type === 'attachment') {
+      contentTypeIndicator.textContent = '[attachment]';
     }
     
-    // Create header
-    const header = document.createElement('h3');
-    header.textContent = `Matching content in "${conversationName}"`;
-    snippetsContainer.appendChild(header);
-    
-    // Add each snippet
-    snippets.slice(0, 3).forEach(snippet => {
-      const snippetDiv = document.createElement('div');
-      snippetDiv.className = 'search-snippet';
-      
-      const senderSpan = document.createElement('span');
-      senderSpan.className = 'snippet-sender';
-      senderSpan.textContent = snippet.sender === 'human' ? 'You: ' : 'Claude: ';
-      
-      const contentTypeIndicator = document.createElement('small');
-      contentTypeIndicator.style.color = 'var(--text-secondary)';
-      contentTypeIndicator.style.marginLeft = '5px';
-      
-      if (snippet.content_type === 'thinking') {
-        contentTypeIndicator.textContent = '[thinking]';
-      } else if (snippet.content_type === 'attachment') {
-        contentTypeIndicator.textContent = '[attachment]';
-      }
-      
-      const contentSpan = document.createElement('span');
-      // Bold the search term in the snippet
-      const regex = new RegExp(`(${currentSearchTerm})`, 'gi');
-      contentSpan.innerHTML = snippet.snippet.replace(regex, '<strong style="background-color: #fff7c0">$1</strong>');
-      
-      snippetDiv.appendChild(senderSpan);
+    // Add timestamp if available
+    if (snippet.timestamp) {
+      const timestampSpan = document.createElement('span');
+      timestampSpan.style.color = 'var(--text-secondary)';
+      timestampSpan.style.fontSize = '12px';
+      timestampSpan.style.marginLeft = '8px';
+      timestampSpan.textContent = formatDate(new Date(snippet.timestamp));
+      headerDiv.appendChild(senderSpan);
       if (snippet.content_type !== 'text') {
-        snippetDiv.appendChild(contentTypeIndicator);
+        headerDiv.appendChild(contentTypeIndicator);
       }
-      snippetDiv.appendChild(document.createElement('br'));
-      snippetDiv.appendChild(contentSpan);
-      snippetsContainer.appendChild(snippetDiv);
-    });
-    
-    if (snippets.length > 3) {
-      const more = document.createElement('div');
-      more.className = 'more-snippets';
-      more.textContent = `...and ${snippets.length - 3} more matches`;
-      snippetsContainer.appendChild(more);
+      headerDiv.appendChild(timestampSpan);
+    } else {
+      headerDiv.appendChild(senderSpan);
+      if (snippet.content_type !== 'text') {
+        headerDiv.appendChild(contentTypeIndicator);
+      }
     }
+    
+    snippetDiv.appendChild(headerDiv);
+    
+    const contentSpan = document.createElement('span');
+    // Bold the search term in the snippet
+    const regex = new RegExp(`(${currentSearchTerm})`, 'gi');
+    contentSpan.innerHTML = snippet.snippet.replace(regex, '<strong style="background-color: #fff7c0">$1</strong>');
+    
+    snippetDiv.appendChild(document.createElement('br'));
+    snippetDiv.appendChild(contentSpan);
+    
+    return snippetDiv;
   }
   
   // Render conversations to the grid
