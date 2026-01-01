@@ -55,14 +55,31 @@
     
     <form id="settingsForm">
       <label for="downloadDir">Download Directory:</label>
-      <input 
-        type="text" 
-        id="downloadDir" 
-        placeholder="claude-conversations" 
-        required 
+      <input
+        type="text"
+        id="downloadDir"
+        placeholder="claude-conversations"
+        required
       />
       <p><em>Note: This directory will be created within your Chrome downloads folder.</em></p>
-      
+
+      <div style="margin-bottom: 15px;">
+        <label style="display: inline;">
+          <input type="checkbox" id="prependDate" />
+          Prepend date to filename
+        </label>
+        <p><em>When enabled, filenames will start with the chat creation date (e.g., 2025-08-18_chat_name.json)</em></p>
+      </div>
+
+      <div id="dateFormatContainer" style="margin-bottom: 15px; display: none;">
+        <label for="dateFormat">Date Format:</label>
+        <select id="dateFormat">
+          <option value="YYYY-MM-DD">YYYY-MM-DD (e.g., 2025-08-18)</option>
+          <option value="YYYY-MM-DD_HHMM">YYYY-MM-DD_HHMM (e.g., 2025-08-18_1430)</option>
+          <option value="YYYYMMDD">YYYYMMDD (e.g., 20250818)</option>
+        </select>
+      </div>
+
       <button type="submit">Save Settings</button>
     </form>
     

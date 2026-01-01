@@ -1,5 +1,25 @@
 import { ClaudeDB } from './db.js';
 
+// Helper function to format date based on format string
+function formatDateForFilename(dateString, format) {
+  const date = new Date(dateString);
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  const hours = String(date.getHours()).padStart(2, '0');
+  const minutes = String(date.getMinutes()).padStart(2, '0');
+
+  switch (format) {
+    case 'YYYY-MM-DD_HHMM':
+      return `${year}-${month}-${day}_${hours}${minutes}`;
+    case 'YYYYMMDD':
+      return `${year}${month}${day}`;
+    case 'YYYY-MM-DD':
+    default:
+      return `${year}-${month}-${day}`;
+  }
+}
+
 // Set up a recurring alarm every eight hours
 chrome.runtime.onInstalled.addListener(() => {
   chrome.alarms.create('fetchConversationsAlarm', { periodInMinutes: 480 });
@@ -88,9 +108,11 @@ async function fetchAndSaveConversations(forceFullBackup = false) {
 
   updateBadge();
   
-  chrome.storage.local.get(['downloadDir', 'lastBackupState'], async (settings) => {
+  chrome.storage.local.get(['downloadDir', 'lastBackupState', 'prependDate', 'dateFormat'], async (settings) => {
     const downloadDir = settings.downloadDir || 'claude-conversations';
     const lastBackupState = settings.lastBackupState || {}; // UUID -> timestamp mapping
+    const prependDate = settings.prependDate || false;
+    const dateFormat = settings.dateFormat || 'YYYY-MM-DD';
     
     try {
       // Step 1: Fetch organizations to find the one with chat capabilities
@@ -174,11 +196,17 @@ async function fetchAndSaveConversations(forceFullBackup = false) {
         
         const conversationDetail = await detailResponse.json();
         
+        // Generate filename with optional date prefix
+        const baseName = `${(conversation.name || 'Untitled Conversation').replace(/[^a-z0-9]/gi, '_').toLowerCase()}_${conversation.uuid}`;
+        const fileName = prependDate
+          ? `${formatDateForFilename(conversation.created_at, dateFormat)}_${baseName}`
+          : baseName;
+
         // Save updated conversation
         await saveConversationToFile(
-          conversationDetail, 
-          downloadDir, 
-          `${(conversation.name || 'Untitled Conversation').replace(/[^a-z0-9]/gi, '_').toLowerCase()}_${conversation.uuid}`
+          conversationDetail,
+          downloadDir,
+          fileName
         );
 
         try {
