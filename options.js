@@ -3,16 +3,34 @@ document.addEventListener('DOMContentLoaded', () => {
   const prependDateCheckbox = document.getElementById('prependDate');
   const dateFormatSelect = document.getElementById('dateFormat');
   const dateFormatContainer = document.getElementById('dateFormatContainer');
+  const migrationWarning = document.getElementById('migrationWarning');
   const form = document.getElementById('settingsForm');
   const status = document.getElementById('status');
   const backupNowButton = document.getElementById('backupNow');
+  const forceFullBackupButton = document.getElementById('forceFullBackup');
+
+  // Track initial values to detect changes
+  let savedPrependDate = false;
+  let savedDateFormat = 'YYYY-MM-DD';
 
   // Show/hide date format dropdown based on checkbox state
   function updateDateFormatVisibility() {
     dateFormatContainer.style.display = prependDateCheckbox.checked ? 'block' : 'none';
   }
 
-  prependDateCheckbox.addEventListener('change', updateDateFormatVisibility);
+  // Show warning if filename format settings have changed
+  function updateMigrationWarning() {
+    const hasChanges = prependDateCheckbox.checked !== savedPrependDate ||
+      (prependDateCheckbox.checked && dateFormatSelect.value !== savedDateFormat);
+    migrationWarning.style.display = hasChanges ? 'block' : 'none';
+  }
+
+  prependDateCheckbox.addEventListener('change', () => {
+    updateDateFormatVisibility();
+    updateMigrationWarning();
+  });
+
+  dateFormatSelect.addEventListener('change', updateMigrationWarning);
 
   // Load saved settings
   chrome.storage.local.get(['downloadDir', 'prependDate', 'dateFormat'], (data) => {
@@ -23,8 +41,11 @@ document.addEventListener('DOMContentLoaded', () => {
       downloadDirInput.value = 'claude-conversations';
     }
 
-    prependDateCheckbox.checked = data.prependDate || false;
-    dateFormatSelect.value = data.dateFormat || 'YYYY-MM-DD';
+    savedPrependDate = data.prependDate || false;
+    savedDateFormat = data.dateFormat || 'YYYY-MM-DD';
+
+    prependDateCheckbox.checked = savedPrependDate;
+    dateFormatSelect.value = savedDateFormat;
     updateDateFormatVisibility();
   });
 
@@ -36,6 +57,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const dateFormat = dateFormatSelect.value;
 
     chrome.storage.local.set({ downloadDir, prependDate, dateFormat }, () => {
+      // Update saved values so warning disappears
+      savedPrependDate = prependDate;
+      savedDateFormat = dateFormat;
+      updateMigrationWarning();
+
       status.textContent = 'Settings saved!';
       status.className = 'status success';
       status.style.display = 'block';
@@ -45,14 +71,26 @@ document.addEventListener('DOMContentLoaded', () => {
       }, 3000);
     });
   });
-  
+
   // Backup now button
   backupNowButton.addEventListener('click', () => {
     chrome.runtime.sendMessage({ action: 'backupNow' });
     status.textContent = 'Backup started! Check your downloads folder when complete.';
     status.className = 'status success';
     status.style.display = 'block';
-    
+
+    setTimeout(() => {
+      status.style.display = 'none';
+    }, 5000);
+  });
+
+  // Force full backup button
+  forceFullBackupButton.addEventListener('click', () => {
+    chrome.runtime.sendMessage({ action: 'forceFullBackup' });
+    status.textContent = 'Force full backup started! All conversations will be re-downloaded.';
+    status.className = 'status success';
+    status.style.display = 'block';
+
     setTimeout(() => {
       status.style.display = 'none';
     }, 5000);

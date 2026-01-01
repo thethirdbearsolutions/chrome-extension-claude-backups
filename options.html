@@ -46,6 +46,10 @@
         background-color: #d4edda;
         color: #155724;
       }
+      .warning {
+        background-color: #fff3cd;
+        color: #856404;
+      }
     </style>
     <script src="options.js"></script>
   </head>
@@ -80,6 +84,10 @@
         </select>
       </div>
 
+      <div id="migrationWarning" class="status warning" style="display: none; margin-bottom: 15px;">
+        <strong>Note:</strong> Changing filename format won't rename existing backup files. After saving, use "Force Full Backup" below to download all conversations with the new format, then manually delete old files from your backup folder.
+      </div>
+
       <button type="submit">Save Settings</button>
     </form>
     
@@ -87,6 +95,8 @@
     
     <div style="margin-top: 30px;">
       <button id="backupNow">Backup Conversations Now</button>
+      <button id="forceFullBackup" style="margin-left: 10px;">Force Full Backup</button>
+      <p><em>Force Full Backup re-downloads all conversations, even unchanged ones.</em></p>
     </div>
   </body>
 </html>
